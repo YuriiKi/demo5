@@ -2,6 +2,7 @@ package ua.kivshar.yurii.demo5;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -62,20 +63,26 @@ public class GetHTML {
     private static void downloadFile(String url) {
         String directoryPath = "D:\\Delete"; // Шлях до локальної директорії
 
-        // Визначення шляху до директорії з використанням регулярних виразів
-        String regex = "https://download\\.platezhka\\.com\\.ua/(.*?)/[^/]+$";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(url);
+        try {
+            // Конвертування URL в читабельний текст
+            String decodedUrl = URLDecoder.decode(url, "UTF-8");
 
-        if (matcher.find()) {
-            String pathFromUrl = matcher.group(1);
+            // Визначення шляху до директорії з використанням регулярних виразів
+            String regex = "https://download\\.platezhka\\.com\\.ua/(.*?)/[^/]+$";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(decodedUrl);
 
-            // Створення повної структури директорій
-            String fullPath = directoryPath + "/" + pathFromUrl;
+            String directoryPathFromUrl = null;
+            if (matcher.find()) {
+                directoryPathFromUrl = matcher.group(1);
+            }
 
-            // Перевірка наявності директорії і створення, якщо вона відсутня
-            Path directory = Paths.get(fullPath);
-            try {
+            if (directoryPathFromUrl != null) {
+                // Створення повної структури директорій
+                String fullPath = directoryPath + "/" + directoryPathFromUrl;
+
+                // Перевірка наявності директорії і створення, якщо вона відсутня
+                Path directory = Paths.get(fullPath);
                 if (!Files.exists(directory)) {
                     Files.createDirectories(directory);
                     System.out.println("Створено директорію: " + fullPath);
@@ -84,7 +91,9 @@ public class GetHTML {
                 }
 
                 // Завантаження файлу
-                String fileName = url.substring(url.lastIndexOf('/') + 1);
+                String fileName = decodedUrl.substring(decodedUrl.lastIndexOf('/') + 1);
+                System.out.println("Start download: " + url);
+                System.out.println("to " + fullPath + "/" + fileName);
                 try (InputStream in = new URL(url).openStream();
                      FileOutputStream fos = new FileOutputStream(fullPath + "/" + fileName)) {
                     byte[] buffer = new byte[4096];
@@ -96,12 +105,11 @@ public class GetHTML {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else {
+                System.out.println("Не вдалося отримати шлях до директорії з URL.");
             }
-        } else {
-            System.out.println("Не вдалося отримати шлях до директорії з URL.");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
     }
 }
